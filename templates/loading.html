@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Summarizing...</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="main-container">
+
+  <div class="app-header">
+    <div class="app-logo">
+      <div class="logo-icon">&#128196;</div>
+      <span class="logo-text">DocSummarize</span>
+    </div>
+  </div>
+
+  <div class="upload-card">
+
+    <!-- Loading State -->
+    <div class="loader-card" id="loaderView">
+      <div class="spinner-wrap">
+        <div class="spinner-ring"></div>
+        <div class="spinner-ring"></div>
+        <div class="spinner-ring"></div>
+      </div>
+      <p class="loader-title">Reading your document...</p>
+      <p class="loader-sub">Groq is processing at lightning speed</p>
+      <span class="file-chip">{{ filename }}</span>
+      <div class="status-dots">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+    </div>
+
+    <!-- Result State -->
+    <div class="result-view" id="resultView">
+      <div class="result-header">
+        <div class="result-badge">Summary Ready</div>
+        <h2 class="result-title">Here's your summary</h2>
+        <p class="result-file">{{ filename }}</p>
+      </div>
+      <div id="summaryContent"></div>
+      <div class="action-row">
+        <a href="/download" class="btn-download">Download .txt</a>
+        <a href="/" class="btn-back">Upload Another</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // Convert plain text with "- bullet" lines into clean HTML
+  function renderSummary(raw) {
+    const lines = raw.split("\n");
+    let html = "";
+    let inList = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+
+      if (!trimmed) {
+        if (inList) { html += "</ul>"; inList = false; }
+        continue;
+      }
+
+      // Bullet line
+      if (/^-\s+/.test(trimmed)) {
+        if (!inList) { html += '<ul class="summary-list">'; inList = true; }
+        html += `<li>${trimmed.replace(/^-\s+/, "")}</li>`;
+        continue;
+      }
+
+      // Close list before non-bullet
+      if (inList) { html += "</ul>"; inList = false; }
+
+      // First line = document title (bold, larger)
+      if (i === 0 || (i === 1 && !lines[0].trim())) {
+        html += `<p class="doc-title">${trimmed}</p>`;
+        continue;
+      }
+
+      // Section headings — short lines that are NOT sentences (no period, < 6 words)
+      const wordCount = trimmed.split(/\s+/).length;
+      const looksLikeHeading = wordCount <= 6 && !trimmed.endsWith(".") && !trimmed.endsWith(",");
+      if (looksLikeHeading) {
+        html += `<p class="section-heading">${trimmed}</p>`;
+        continue;
+      }
+
+      // Normal paragraph
+      html += `<p class="summary-para">${trimmed}</p>`;
+    }
+
+    if (inList) html += "</ul>";
+    return html;
+  }
+
+  window.addEventListener("DOMContentLoaded", async () => {
+    try {
+      const response = await fetch("/summarize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({})
+      });
+
+      const data = await response.json();
+
+      document.getElementById("loaderView").style.display = "none";
+      document.getElementById("resultView").style.display = "block";
+
+      const box = document.getElementById("summaryContent");
+
+      if (data.error) {
+        box.className = "error-box";
+        box.innerHTML = renderSummary(data.error);
+      } else {
+        box.className = "summary-block";
+        box.innerHTML = renderSummary(data.overview);
+      }
+
+    } catch (err) {
+      document.getElementById("loaderView").style.display = "none";
+      document.getElementById("resultView").style.display = "block";
+      const box = document.getElementById("summaryContent");
+      box.className = "error-box";
+      box.textContent = "Network error. Please check your connection and try again.";
+    }
+  });
+</script>
+</body>
+</html>
