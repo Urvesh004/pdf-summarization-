@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Summary Result</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .summary-box { text-align: left; white-space: pre-wrap; word-wrap: break-word; 
+                       font-family: inherit; font-size: 15px; line-height: 1.8; 
+                       background: #f9f9f9; border-radius: 10px; padding: 20px; 
+                       border-left: 4px solid #4f46e5; }
+        .section-label { font-weight: bold; font-size: 17px; color: #4f46e5; }
+    </style>
+</head>
+<body>
+<div class="main-container">
+    <div class="upload-card">
+        <h1>🤗 PDF Summary</h1>
+        <p class="file-name">📄 {{ filename }}</p>
+        <div class="summary">
+            <div class="summary-box">{{ summary.overview }}</div>
+            <a href="/download" class="download-btn">⬇ Download Summary</a>
+        </div>
+        <a href="/" class="back-btn">⬅ Upload Another</a>
+    </div>
+</div>
+</body>
+</html>
